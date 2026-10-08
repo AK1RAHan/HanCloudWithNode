@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My HanCloud</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      display: flex;
+      height: 100vh;
+      background-color: #121212;
+      color: #fff;
+      overflow: hidden; /* Biar scrollbar utama OS nggak ganjel */
+    }
+
+    /* 1. Sidebar Navigasi di Kiri */
+    .sidebar {
+      width: 240px;
+      background-color: #1e1e1e;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      border-right: 1px solid #333;
+      flex-shrink: 0;
+    }
+
+    .sidebar h2 {
+      font-size: 1.2rem;
+      color: #00adb5;
+    }
+
+    .upload-box {
+      background: #2a2a2a;
+      padding: 15px;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .upload-box input[type="file"] {
+      font-size: 0.8rem;
+    }
+
+    .upload-box button {
+      background: #00adb5;
+      color: white;
+      border: none;
+      padding: 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    /* 2. Area Konten Utama */
+    .main-content {
+      flex: 1;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .header {
+      margin-bottom: 15px;
+    }
+
+    /* 3. Container Item: Ke bawah dulu baru geser ke kanan */
+    .grid-container {
+      display: flex;
+      flex-direction: column; /* Biar item disusun ke bawah dulu */
+      flex-wrap: wrap;        /* Kalau gak muat di bawah, bakal geser ke kanan */
+      height: calc(100vh - 80px); /* Batasi tinggi container */
+      overflow-x: auto;       /* Bikin scrollbar horizontal */
+      gap: 15px;
+      padding-bottom: 15px;
+    }
+
+    /* Style Item / File Card */
+    .card {
+      width: 200px;
+      height: 140px;
+      background-color: #222831;
+      border: 1px solid #393e46;
+      border-radius: 8px;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .card h4 {
+      font-size: 0.9rem;
+      word-break: break-all;
+    }
+
+    .card span {
+      font-size: 0.75rem;
+      color: #aaaaaa;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar Navigasi & Form Upload Simpel -->
+  <div class="sidebar">
+    <h2>HanCloud</h2>
+    
+    <div class="upload-box">
+      <label style="font-size: 0.85rem;">Upload File:</label>
+      <input type="file" id="fileInput" />
+      <button onclick="uploadFile()">Upload</button>
+    </div>
+
+    <nav>
+      <p style="font-size: 0.8rem; color: #666;">NAVIGASI</p>
+      <ul style="list-style: none; margin-top: 10px; line-height: 2;">
+        <li><a href="#" style="color: #fff; text-decoration: none;">📁 Semua File</a></li>
+      </ul>
+    </nav>
+  </div>
+
+  <!-- Area Dashboard (Scroll Horizontal) -->
+  <div class="main-content">
+    <div class="header">
+      <h3>Dashboard File</h3>
+    </div>
+
+    <!-- Container File (Dummy item buat tes layout) -->
+    <div class="grid-container" id="fileContainer">
+      <div class="card"><h4>video_demo.mp4</h4><span>12.5 MB</span></div>
+      <div class="card"><h4>catatan.txt</h4><span>2 KB</span></div>
+      <div class="card"><h4>desain_proyek.png</h4><span>1.1 MB</span></div>
+      <div class="card"><h4>tugas_lab.pdf</h4><span>500 KB</span></div>
+      <div class="card"><h4>music_bgm.mp3</h4><span>4.2 MB</span></div>
+      <div class="card"><h4>backup_database.sql</h4><span>88 KB</span></div>
+      <div class="card"><h4>presentasi.pptx</h4><span>15 MB</span></div>
+      <div class="card"><h4>kodingan_express.js</h4><span>4 KB</span></div>
+    </div>
+  </div>
+
+  <script>
+    // Fungsi Ambil Daftar File dari SQLite
+    async function loadFiles() {
+      const res = await fetch('/api/files');
+      const files = await res.json();
+      
+      const container = document.getElementById('fileContainer');
+      container.innerHTML = '';
+
+      if (files.length === 0) {
+        container.innerHTML = '<p style="color:#888;">Belum ada file di-upload...</p>';
+        return;
+      }
+
+      files.forEach(file => {
+        const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <div>
+            <h4>${file.original_name}</h4>
+            <span>${sizeMB} MB</span>
+          </div>
+          <a href="/api/download/${file.id}" style="color:#00adb5; text-decoration:none; font-weight:bold; font-size:0.85rem;">⬇ Download</a>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // Fungsi Upload File
+    async function uploadFile() {
+      const fileInput = document.getElementById('fileInput');
+      if (!fileInput.files[0]) return alert('Pilih file dulu, bro!');
+
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        alert('File berhasil dikirim!');
+        fileInput.value = ''; // Reset input
+        loadFiles(); // Reload daftar file
+      } else {
+        alert('Gagal upload file');
+      }
+    }
+
+    // Load file saat pertama kali dibuka
+    loadFiles();
+  </script>
+</body>
+</html>
